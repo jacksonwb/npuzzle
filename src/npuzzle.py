@@ -4,7 +4,7 @@
 #                                                                              #
 #  By - jacksonwb                                                              #
 #  Created: Sunday August 2019 8:46:34 pm                                      #
-#  Modified: Thursday Aug 2019 10:01:46 pm                                     #
+#  Modified: Friday Aug 2019 12:10:15 pm                                       #
 #  Modified By: jacksonwb                                                      #
 # ---------------------------------------------------------------------------- #
 
@@ -79,12 +79,31 @@ def process_input(args):
 		return parse_map(data)
 
 def fn_hamming(size, n_map, goal):
+	# Find Hamming Heuristic Value
 	ham = 0
 	for row in zip(n_map, goal):
 		for val in zip(row[0], row[1]):
 			if val[0] != 0 and val[0] != val[1]:
 				ham += 1
 	return ham
+
+def fn_manhattan(size, n_map, goal):
+	# Find Manhattan Heuristic Value
+	ret = 0
+	state = []
+	for row in n_map:
+		state += list(row)
+	end = []
+	for row in goal:
+		end += list(row)
+	for i in range(size * size):
+		ret += abs(i // size - end.index(state[i]) // size) + abs(i % size - end.index(state[i]) % size)
+	# for i in range(size):
+	# 	for j in range(size):
+	# 		index = [[li, row.index(n_map[i][j])] for li, row in enumerate(goal) if row.count(n_map[i][j])][0]
+	# 		ret += abs(i - index[0]) + abs(j - index[1])
+	return ret
+
 
 def generate_children(n_map, size):
 	zero = [[i, row.index(0)] for i, row in enumerate(n_map) if row.count(0)][0]
@@ -144,9 +163,9 @@ class Puzzle:
 			solution.append(state)
 			print(self.map_str(state), '\n')
 			state = self.parent[state]
-		print(self.map_str(self.start))
 	def print_solution(self):
 		self.print_all_states(self.finish)
+		print()
 		print(f"Solved in {self.end_time - self.start_time:.4f} seconds")
 		print("Time complexity:", len(self.closed_set))
 		print("Space Complexity:", len(self.g_val))
@@ -155,7 +174,7 @@ class Puzzle:
 if __name__ == "__main__":
 	args = parse()
 	try:
-		puzzle = Puzzle(*process_input(args), fn_hamming)
+		puzzle = Puzzle(*process_input(args), fn_manhattan)
 		puzzle.solve()
 		puzzle.print_solution()
 	except (SyntaxError, PuzzleException) as e:
