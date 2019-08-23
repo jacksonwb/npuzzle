@@ -4,7 +4,7 @@
 #                                                                              #
 #  By - jacksonwb                                                              #
 #  Created: Sunday August 2019 8:46:34 pm                                      #
-#  Modified: Friday Aug 2019 12:10:15 pm                                       #
+#  Modified: Friday Aug 2019 4:45:22 pm                                        #
 #  Modified By: jacksonwb                                                      #
 # ---------------------------------------------------------------------------- #
 
@@ -15,6 +15,54 @@ import time
 from generate import make_random_puzzle, make_goal_puzzle
 from PQueue import PQueue
 from check_solvable import is_solvable
+
+GREEN = "\033[32m"
+RED = "\033[31m"
+NO_COLOR = "\033[0m"
+
+def fn_hamming(size, n_map, goal):
+	# Find Hamming Heuristic Value
+	ham = 0
+	for row in zip(n_map, goal):
+		for val in zip(row[0], row[1]):
+			if val[0] != 0 and val[0] != val[1]:
+				ham += 1
+	return ham
+
+def fn_manhattan(size, n_map, goal):
+	# Find Manhattan Heuristic Value
+	ret = 0
+	state = []
+	for row in n_map:
+		state += list(row)
+	end = []
+	for row in goal:
+		end += list(row)
+	for i in range(size * size):
+		ret += abs(i // size - end.index(state[i]) // size) + abs(i % size - end.index(state[i]) % size)
+	return ret
+
+def fn_linear_conflicts(size, n_map, goal):
+	def get_loc(search_map, val):
+		return [[i, row.index(val)] for i, row in enumerate(search_map) if row.count(val)][0]
+
+	ret = fn_manhattan(size, n_map, goal)
+	for i in range(size):
+		for j in range(size):
+			n = get_loc(goal, n_map[i][j])
+			n2 = get_loc(goal, n_map[j][i])
+			for k in range(j + 1, size):
+				if n[0] == i:
+					m = get_loc(goal, n_map[i][k])
+					if m[0] == i and n[1] > m[1]:
+						ret += 2
+				if n[1] == i:
+					m2 = get_loc(goal, n_map[k][i])
+					if m2[1] == i and n2[0] > m2[0]:
+						ret += 2
+	return ret
+
+heuristic = {"hamming":fn_hamming, "manhattan":fn_manhattan, "conflicts":fn_linear_conflicts}
 
 def check_random_size_input(val):
 	try:
@@ -29,7 +77,8 @@ def check_random_size_input(val):
 def parse():
 	parser = argparse.ArgumentParser(description='N-Puzzle solver using A* searching '
 		'with selectable heuristics')
-	parser.add_argument('-f', '--function', help='Specify heuristic function')
+	parser.add_argument('-f', '--function', help='Specify heuristic function', default="manhattan", choices=['hamming', 'manhattan', 'conflicts'])
+	parser.add_argument('-l', '--lazy', help='Use lazy path finding', action='store_true')
 	input_group = parser.add_mutually_exclusive_group(required=True)
 	input_group.add_argument('-r', '--random', dest='size', type=check_random_size_input,
 		help='Generate random puzzle of specified size')
@@ -45,9 +94,9 @@ def validate_map(n, n_map):
 		flat = list(itertools.accumulate([list(row) for row in n_map]))[-1]
 		valid.append(all([flat.count(i) == 1 for i in range(n * n)]))
 	except:
-		raise PuzzleException('Invalid Map')
+		raise SyntaxError('Invalid Map')
 	if not all(valid):
-		raise PuzzleException('Invalid Map')
+		raise SyntaxError('Invalid Map')
 	return [n, n_map]
 
 def parse_map(data):
@@ -78,33 +127,6 @@ def process_input(args):
 			data = f.read().splitlines()
 		return parse_map(data)
 
-def fn_hamming(size, n_map, goal):
-	# Find Hamming Heuristic Value
-	ham = 0
-	for row in zip(n_map, goal):
-		for val in zip(row[0], row[1]):
-			if val[0] != 0 and val[0] != val[1]:
-				ham += 1
-	return ham
-
-def fn_manhattan(size, n_map, goal):
-	# Find Manhattan Heuristic Value
-	ret = 0
-	state = []
-	for row in n_map:
-		state += list(row)
-	end = []
-	for row in goal:
-		end += list(row)
-	for i in range(size * size):
-		ret += abs(i // size - end.index(state[i]) // size) + abs(i % size - end.index(state[i]) % size)
-	# for i in range(size):
-	# 	for j in range(size):
-	# 		index = [[li, row.index(n_map[i][j])] for li, row in enumerate(goal) if row.count(n_map[i][j])][0]
-	# 		ret += abs(i - index[0]) + abs(j - index[1])
-	return ret
-
-
 def generate_children(n_map, size):
 	zero = [[i, row.index(0)] for i, row in enumerate(n_map) if row.count(0)][0]
 	pos_lst = [[sum(y) for y in zip(zero, x)] for x in [[0,1], [0,-1], [1,0], [-1,0]]]
@@ -118,29 +140,25 @@ class PuzzleException(Exception):
 	pass
 
 class Puzzle:
-	def __init__(self, size, in_map, h_fn):
+	def __init__(self, size, in_map, h_fn, lazy):
 		self.size = size
 		self.start = make_goal_puzzle(self.size)
 		self.finish = in_map
 		if not is_solvable(size, self.finish, self.start):
-			raise PuzzleException("Not Solvable")
+			raise PuzzleException(RED + "Not Solvable" + NO_COLOR)
 		self.h_fn = h_fn
-		self.open_set = PQueue(key=lambda x: self.g_val[x] + self.h_fn(self.size, x, self.finish))
+		self.open_set = PQueue(key=lambda x: (self.g_val[x] if not lazy else 0) + self.h_fn(self.size, x, self.finish))
+		# self.open_set = PQueue(key=lambda x: self.g_val[x] + self.h_fn(self.size, x, self.finish))
 		self.closed_set = {}
 		self.parent = dict([(self.start, None)])
 
 		#initialize g_val dict
 		self.g_val = {}
 		self.g_val[self.start] = 0
-
-		self.states_processed = 0
-		self.max_size = 0
 	def solve(self):
 		self.start_time = time.process_time()
 		self.open_set.push(self.start)
 		while not self.open_set.is_empty():
-			self.states_processed += 1
-			self.max_size = max(self.max_size, self.open_set.size())
 			current = self.open_set.pop()
 			self.closed_set[current] = current
 			if current == self.finish:
@@ -155,7 +173,8 @@ class Puzzle:
 					self.parent[child] = current
 					self.open_set.push(child)
 	def map_str(self, n_map):
-		return '\n'.join([' '.join(map(str, row)) for row in n_map])
+		s = len(str(len(n_map) ** 2))
+		return '\n'.join([''.join(map(lambda x: str(x).rjust(s + 1), row)) for row in n_map])
 
 	def print_all_states(self, state):
 		solution = []
@@ -165,8 +184,7 @@ class Puzzle:
 			state = self.parent[state]
 	def print_solution(self):
 		self.print_all_states(self.finish)
-		print()
-		print(f"Solved in {self.end_time - self.start_time:.4f} seconds")
+		print(GREEN, f"Solved in {self.end_time - self.start_time:.4f} seconds", NO_COLOR, sep='')
 		print("Time complexity:", len(self.closed_set))
 		print("Space Complexity:", len(self.g_val))
 		print("Number of steps:", self.g_val[self.finish])
@@ -174,9 +192,9 @@ class Puzzle:
 if __name__ == "__main__":
 	args = parse()
 	try:
-		puzzle = Puzzle(*process_input(args), fn_manhattan)
+		puzzle = Puzzle(*process_input(args), heuristic[args.function], args.lazy)
 		puzzle.solve()
 		puzzle.print_solution()
-	except (SyntaxError, PuzzleException) as e:
+	except (BaseException) as e:
 		print("npuzzle:",e)
 
