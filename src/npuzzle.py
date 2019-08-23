@@ -4,13 +4,14 @@
 #                                                                              #
 #  By - jacksonwb                                                              #
 #  Created: Sunday August 2019 8:46:34 pm                                      #
-#  Modified: Thursday Aug 2019 5:21:43 pm                                      #
+#  Modified: Thursday Aug 2019 10:01:46 pm                                     #
 #  Modified By: jacksonwb                                                      #
 # ---------------------------------------------------------------------------- #
 
 import argparse
 import re
 import itertools
+import time
 from generate import make_random_puzzle, make_goal_puzzle
 from PQueue import PQueue
 from check_solvable import is_solvable
@@ -36,6 +37,19 @@ def parse():
 		help='Read puzzle from file')
 	return parser.parse_args()
 
+def validate_map(n, n_map):
+	valid = []
+	try:
+		valid.append(len(n_map) == n)
+		valid.append(all([len(row) == n for row in n_map]))
+		flat = list(itertools.accumulate([list(row) for row in n_map]))[-1]
+		valid.append(all([flat.count(i) == 1 for i in range(n * n)]))
+	except:
+		raise PuzzleException('Invalid Map')
+	if not all(valid):
+		raise PuzzleException('Invalid Map')
+	return [n, n_map]
+
 def parse_map(data):
 	data = list(filter(lambda l: l[0] != '#', data))
 	try:
@@ -53,7 +67,7 @@ def parse_map(data):
 		if len(row) != n:
 			raise SyntaxError(f'Invalid map row: {i + 1}')
 		n_map.append(row)
-	return [n, tuple(n_map)]
+	return validate_map(n, tuple(n_map))
 
 def process_input(args):
 	if args.size:
@@ -103,6 +117,7 @@ class Puzzle:
 		self.states_processed = 0
 		self.max_size = 0
 	def solve(self):
+		self.start_time = time.process_time()
 		self.open_set.push(self.start)
 		while not self.open_set.is_empty():
 			self.states_processed += 1
@@ -110,6 +125,7 @@ class Puzzle:
 			current = self.open_set.pop()
 			self.closed_set[current] = current
 			if current == self.finish:
+				self.end_time = time.process_time()
 				return
 			for child in generate_children(current, self.size):
 				if child in self.closed_set:
@@ -131,8 +147,9 @@ class Puzzle:
 		print(self.map_str(self.start))
 	def print_solution(self):
 		self.print_all_states(self.finish)
-		print("Number of states processed:", len(self.closed_set))
-		print("Max Size:", len(self.g_val))
+		print(f"Solved in {self.end_time - self.start_time:.4f} seconds")
+		print("Time complexity:", len(self.closed_set))
+		print("Space Complexity:", len(self.g_val))
 		print("Number of steps:", self.g_val[self.finish])
 
 if __name__ == "__main__":
