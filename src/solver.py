@@ -4,7 +4,7 @@
 #                                                                              #
 #  By - jacksonwb                                                              #
 #  Created: Wednesday December 1969 4:00:00 pm                                 #
-#  Modified: Friday Aug 2019 4:58:06 pm                                        #
+#  Modified: Saturday Aug 2019 7:09:06 pm                                      #
 #  Modified By: jacksonwb                                                      #
 # ---------------------------------------------------------------------------- #
 
@@ -30,14 +30,14 @@ def generate_children(n_map, size):
 			yield tuple(tuple(row) for row in new_map)
 
 class Puzzle:
-	def __init__(self, size, in_map, h_fn, lazy):
+	def __init__(self, size, in_map, h_fn, greedy):
 		self.size = size
 		self.start = make_goal_puzzle(self.size)
 		self.finish = in_map
 		if not is_solvable(size, self.finish, self.start):
 			raise PuzzleException(RED + "Not Solvable" + NO_COLOR)
 		self.h_fn = h_fn
-		self.open_set = PQueue(key=lambda x: (self.g_val[x] if not lazy else 0) + self.h_fn(self.size, x, self.finish))
+		self.open_set = PQueue(key=lambda x: (self.g_val[x] if not greedy else 0) + self.h_fn(self.size, x, self.finish))
 		self.closed_set = {}
 		self.parent = dict([(self.start, None)])
 		self.g_val = {}

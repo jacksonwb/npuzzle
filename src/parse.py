@@ -4,7 +4,7 @@
 #                                                                              #
 #  By - jacksonwb                                                              #
 #  Created: Wednesday December 1969 4:00:00 pm                                 #
-#  Modified: Friday Aug 2019 4:59:04 pm                                        #
+#  Modified: Saturday Aug 2019 7:08:47 pm                                      #
 #  Modified By: jacksonwb                                                      #
 # ---------------------------------------------------------------------------- #
 
@@ -27,7 +27,7 @@ def parse():
 	parser = argparse.ArgumentParser(description='N-Puzzle solver using A* searching '
 		'with selectable heuristics')
 	parser.add_argument('-f', '--function', help='Specify heuristic function', default="manhattan", choices=['hamming', 'manhattan', 'conflicts'])
-	parser.add_argument('-l', '--lazy', help='Use lazy path finding', action='store_true')
+	parser.add_argument('-g', '--greedy', help='Use greedy path finding', action='store_true')
 	input_group = parser.add_mutually_exclusive_group(required=True)
 	input_group.add_argument('-r', '--random', dest='size', type=check_random_size_input,
 		help='Generate random puzzle of specified size')
