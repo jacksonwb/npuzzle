@@ -15,7 +15,7 @@ from src.heuristic import heuristic
 if __name__ == "__main__":
 	args = parse()
 	try:
-		puzzle = Puzzle(*process_input(args), heuristic[args.function], args.lazy)
+		puzzle = Puzzle(*process_input(args), heuristic[args.function], args.greedy)
 		puzzle.solve()
 		puzzle.print_solution()
 	except (BaseException) as e:
