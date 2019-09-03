@@ -4,9 +4,11 @@
 #                                                                              #
 #  By - jacksonwb                                                              #
 #  Created: Wednesday December 1969 4:00:00 pm                                 #
-#  Modified: Friday Aug 2019 4:53:56 pm                                        #
+#  Modified: Monday Sep 2019 9:23:28 pm                                        #
 #  Modified By: jacksonwb                                                      #
 # ---------------------------------------------------------------------------- #
+
+from src.fn_c_heuristic_wrapper import fn_c_linear_conflicts
 
 def fn_hamming(size, n_map, goal):
 	# Find Hamming Heuristic Value
@@ -50,4 +52,4 @@ def fn_linear_conflicts(size, n_map, goal):
 						ret += 2
 	return ret
 
-heuristic = {"hamming":fn_hamming, "manhattan":fn_manhattan, "conflicts":fn_linear_conflicts}
+heuristic = {"hamming":fn_hamming, "manhattan":fn_manhattan, "conflicts":fn_linear_conflicts, "fast":fn_c_linear_conflicts}
